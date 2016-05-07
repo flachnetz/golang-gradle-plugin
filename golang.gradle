@@ -4,8 +4,21 @@ import java.nio.file.LinkOption
 apply plugin: GoPlugin
 
 class GoPlugin implements Plugin<Project> {
-    File relativeTo(File file, File base) {
+    static File relativeTo(File file, File base) {
         return new File(base.toURI().relativize(file.toURI()).path);
+    }
+
+    static String guessCanonicalImport(File root) {
+        def pattern = ~$/^package\s*main\s/\simport\s"([^"]+)"/$
+        for(def file in root.listFiles { it.name.endsWith(".go") }) {
+            for(def matcher in file.readLines().collect { it =~ pattern }) {
+                if(matcher) {
+                    return matcher.group(1)
+                }
+            }
+        }
+
+        throw new RuntimeException("Oops, please add a canonical import path. See https://golang.org/doc/go1.4#canonicalimports'")
     }
 
     void apply(Project project) {
@@ -23,7 +36,7 @@ class GoPlugin implements Plugin<Project> {
         def gopath = new File(project.buildDir, "gopath").absoluteFile
 
         // canonical import of the project
-        def canonicalImport = "srv-git-01-hh1.alinghi.tipp24.net/iwg/octopus"
+        def canonicalImport = guessCanonicalImport(baseDir)
         def canonicalImportFile = new File(gopath, "src/" + canonicalImport)
 
         // get a list of absolute packages for the project
@@ -42,8 +55,6 @@ class GoPlugin implements Plugin<Project> {
 
         project.task('gopath') << {
             gopath.mkdirs()
-
-            def files = sourceFiles.toList()
 
             sourceFiles.each { file ->
                 def target = new File(canonicalImportFile, file.path)
@@ -112,4 +123,3 @@ class GoPlugin implements Plugin<Project> {
 class GoPluginExtension {
     String binaryName = "output"
 }
-
