@@ -1,0 +1,115 @@
+import java.nio.file.Files
+import java.nio.file.LinkOption
+
+apply plugin: GoPlugin
+
+class GoPlugin implements Plugin<Project> {
+    File relativeTo(File file, File base) {
+        return new File(base.toURI().relativize(file.toURI()).path);
+    }
+
+    void apply(Project project) {
+        project.extensions.create("golang", GoPluginExtension)
+
+        def baseDir = project.buildFile.parentFile
+
+        // get all non-vendored go files relative to the projects directory
+        def sourceFiles = project.fileTree(baseDir) {
+            include "**/*.go", "glide.*"
+            exclude "**/vendor/**", "build/**"
+        }.collect { relativeTo(it, baseDir) }
+
+        // go path under build/
+        def gopath = new File(project.buildDir, "gopath").absoluteFile
+
+        // canonical import of the project
+        def canonicalImport = "srv-git-01-hh1.alinghi.tipp24.net/iwg/octopus"
+        def canonicalImportFile = new File(gopath, "src/" + canonicalImport)
+
+        // get a list of absolute packages for the project
+        def packages = sourceFiles.collect {
+            def subdir = it.parentFile
+            if(subdir != null) {
+                (canonicalImport + "/" + subdir).replaceAll('/$', "")
+            } else {
+                canonicalImport
+            }
+        }.toSet()
+
+        project.task('clean', type: Exec) {
+            commandLine "rm", "-rf", "build/"
+        }
+
+        project.task('gopath') << {
+            gopath.mkdirs()
+
+            def files = sourceFiles.toList()
+
+            sourceFiles.each { file ->
+                def target = new File(canonicalImportFile, file.path)
+
+                if(!target.parentFile.exists())
+                    target.parentFile.mkdirs()
+
+                // remove target if it exists
+                if(Files.exists(target.toPath(), LinkOption.NOFOLLOW_LINKS))
+                    Files.delete(target.toPath())
+
+                // link source file to target
+                Files.createSymbolicLink(target.toPath(), file.absoluteFile.toPath())
+
+                // copy file to the build directory
+                // Files.copy(file.toPath(), target.toPath())
+            }
+        }
+
+        if (new File(baseDir, "glide.yaml").exists()) {
+            project.task("glide", type: Exec, dependsOn: "gopath") {
+                commandLine "go", "get", "github.com/Masterminds/glide"
+                environment "GOPATH", gopath
+            }
+
+            project.task("dependencies", type: Exec, dependsOn: "glide") {
+                commandLine gopath.path + "/bin/glide", "install", "--force", "--delete", "--cache"
+                workingDir canonicalImportFile
+                environment "GOPATH", gopath
+            }
+        } else {
+            project.task("dependencies", type: Exec, dependsOn: "gopath") {
+                commandLine "go", "get", "-v"
+                workingDir canonicalImportFile
+                environment "GOPATH", gopath
+            }
+        }
+
+        project.task("format", type: Exec, dependsOn: "gopath") {
+            commandLine(["go", "fmt"] + packages)
+            workingDir canonicalImportFile
+            environment "GOPATH", gopath
+        }
+
+        project.task("test", type: Exec, dependsOn: "dependencies") {
+            commandLine(["go", "test"] + packages)
+            workingDir canonicalImportFile
+            environment "GOPATH", gopath
+        }
+
+        project.task("build", type: Exec, dependsOn: "dependencies") {
+            commandLine "go", "build", "-o", "${->new File(baseDir, project.golang.binaryName)}"
+            workingDir canonicalImportFile
+            environment "GOPATH", gopath
+        }
+
+        project.task("buildStatic", type: Exec, dependsOn: ["format", "dependencies"]) {
+            commandLine "go", "build", "-o", "${->new File(baseDir, project.golang.binaryName)}"
+            workingDir canonicalImportFile
+            environment "GOPATH", gopath
+            environment "CGO_ENABLED", 0
+        }
+    }
+}
+
+class GoPluginExtension {
+    String binaryName = "output"
+}
+
