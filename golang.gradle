@@ -10,9 +10,9 @@ class GoPlugin implements Plugin<Project> {
 
     static String guessCanonicalImport(File root) {
         def pattern = ~$/^package\s*main\s/\simport\s"([^"]+)"/$
-        for(def file in root.listFiles { it.name.endsWith(".go") }) {
-            for(def matcher in file.readLines().collect { it =~ pattern }) {
-                if(matcher) {
+        for (def file in root.listFiles((FileFilter) { it.name.endsWith(".go") })) {
+            for (def matcher in file.readLines().collect { it =~ pattern }) {
+                if (matcher) {
                     return matcher.group(1)
                 }
             }
@@ -42,7 +42,7 @@ class GoPlugin implements Plugin<Project> {
         // get a list of absolute packages for the project
         def packages = sourceFiles.collect {
             def subdir = it.parentFile
-            if(subdir != null) {
+            if (subdir != null) {
                 (canonicalImport + "/" + subdir).replaceAll('/$', "")
             } else {
                 canonicalImport
@@ -59,11 +59,11 @@ class GoPlugin implements Plugin<Project> {
             sourceFiles.each { file ->
                 def target = new File(canonicalImportFile, file.path)
 
-                if(!target.parentFile.exists())
+                if (!target.parentFile.exists())
                     target.parentFile.mkdirs()
 
                 // remove target if it exists
-                if(Files.exists(target.toPath(), LinkOption.NOFOLLOW_LINKS))
+                if (Files.exists(target.toPath(), LinkOption.NOFOLLOW_LINKS))
                     Files.delete(target.toPath())
 
                 // link source file to target
@@ -106,13 +106,13 @@ class GoPlugin implements Plugin<Project> {
         }
 
         project.task("build", type: Exec, dependsOn: "dependencies") {
-            commandLine "go", "build", "-o", "${->new File(baseDir, project.golang.binaryName)}"
+            commandLine "go", "build", "-o", "${-> new File(baseDir, project.golang.binaryName)}"
             workingDir canonicalImportFile
             environment "GOPATH", gopath
         }
 
         project.task("buildStatic", type: Exec, dependsOn: ["format", "dependencies"]) {
-            commandLine "go", "build", "-o", "${->new File(baseDir, project.golang.binaryName)}"
+            commandLine "go", "build", "-o", "${-> new File(baseDir, project.golang.binaryName)}"
             workingDir canonicalImportFile
             environment "GOPATH", gopath
             environment "CGO_ENABLED", 0
