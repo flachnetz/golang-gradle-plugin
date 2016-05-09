@@ -111,11 +111,13 @@ class GoPlugin implements Plugin<Project> {
             environment "GOPATH", gopath
         }
 
-        project.task("buildStatic", type: Exec, dependsOn: ["format", "dependencies"]) {
+        project.task("buildStaticForLinux", type: Exec, dependsOn: ["format", "dependencies"]) {
             commandLine "go", "build", "-o", "${-> new File(baseDir, project.golang.binaryName)}"
             workingDir canonicalImportFile
             environment "GOPATH", gopath
             environment "CGO_ENABLED", 0
+            environment "GOOS", "linux"
+            environment "GOARCH", "amd64"
         }
     }
 }
