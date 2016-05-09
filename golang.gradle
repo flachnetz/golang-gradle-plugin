@@ -9,7 +9,7 @@ class GoPlugin implements Plugin<Project> {
     }
 
     static String guessCanonicalImport(File root) {
-        def pattern = ~$/^package\s*main\s/\simport\s"([^"]+)"/$
+        def pattern = ~$/^package\s+main\s*//\s*import\s+"([^"]+)"/$
         for (def file in root.listFiles((FileFilter) { it.name.endsWith(".go") })) {
             for (def matcher in file.readLines().collect { it =~ pattern }) {
                 if (matcher) {
