@@ -28,7 +28,7 @@ class GoPlugin implements Plugin<Project> {
 
         // get all non-vendored go files relative to the projects directory
         def sourceFiles = project.fileTree(baseDir) {
-            include "**/*.go", "glide.*"
+            include "**/*.go", "glide.*", "resources/**", "static/**"
             exclude "**/vendor/**", "build/**"
         }.collect { relativeTo(it, baseDir) }
 
