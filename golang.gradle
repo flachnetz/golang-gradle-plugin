@@ -31,6 +31,11 @@ class GoPlugin implements Plugin<Project> {
             include "**/*.go", "glide.*", "resources/**", "static/**"
             exclude "**/vendor/**", "build/**"
         }.collect { relativeTo(it, baseDir) }
+        
+        def resourceFiles = project.fileTree(baseDir) {
+            include "resources/**", "static/**"
+        }.collect { relativeTo(it, baseDir) }
+        
 
         // go path under build/
         def gopath = new File(project.buildDir, "gopath").absoluteFile
@@ -56,7 +61,7 @@ class GoPlugin implements Plugin<Project> {
         project.task('gopath') << {
             gopath.mkdirs()
 
-            sourceFiles.each { file ->
+            (resourceFiles + sourceFiles).each { file ->
                 def target = new File(canonicalImportFile, file.path)
 
                 if (!target.parentFile.exists())
