@@ -4,38 +4,37 @@ import java.nio.file.LinkOption
 apply plugin: GoPlugin
 
 class GoPlugin implements Plugin<Project> {
-    static File relativeTo(File file, File base) {
-        return new File(base.toURI().relativize(file.toURI()).path);
-    }
+  static File relativeTo(File file, File base) {
+    return new File(base.toURI().relativize(file.toURI()).path);
+  }
 
-    static String guessCanonicalImport(File root) {
-        def pattern = ~$/^package\s+main\s*//\s*import\s+"([^"]+)"/$
-        for (def file in root.listFiles((FileFilter) { it.name.endsWith(".go") })) {
-            for (def matcher in file.readLines().collect { it =~ pattern }) {
-                if (matcher) {
-                    return matcher.group(1)
-                }
-            }
+  static String guessCanonicalImport(File root) {
+    def pattern = ~$/^package\s+main\s*//\s*import\s+"([^"]+)"/$
+    for (def file in root.listFiles((FileFilter) { it.name.endsWith(".go") })) {
+      for (def matcher in file.readLines().collect { it =~ pattern }) {
+        if (matcher) {
+          return matcher.group(1)
         }
-
-        throw new RuntimeException("Oops, please add a canonical import path. See https://golang.org/doc/go1.4#canonicalimports'")
+      }
     }
 
-    void apply(Project project) {
-        project.extensions.create("golang", GoPluginExtension)
+    throw new RuntimeException("Oops, please add a canonical import path. See https://golang.org/doc/go1.4#canonicalimports'")
+  }
 
+  void apply(Project project) {
+    project.configure(project) {
+      GoPluginExtension config = project.extensions.create("golang", GoPluginExtension)
+
+      afterEvaluate {
         def baseDir = project.buildFile.parentFile
 
         // get all non-vendored go files relative to the projects directory
         def sourceFiles = project.fileTree(baseDir) {
-            include "**/*.go", "glide.*"
-            exclude "**/vendor/**", "build/**"
+          include "**/*.go", "glide.*", "resources/**", "static/**"
+          exclude "**/vendor/**", "build/**"
         }.collect { relativeTo(it, baseDir) }
-        
-        def resourceFiles = project.fileTree(baseDir) {
-            include "resources/**", "static/**"
-        }.collect { relativeTo(it, baseDir) }
-        
+
+        def goSourceFiles = sourceFiles.grep { it.name.toLowerCase().endsWith(".go") }
 
         // go path under build/
         def gopath = new File(project.buildDir, "gopath").absoluteFile
@@ -44,89 +43,102 @@ class GoPlugin implements Plugin<Project> {
         def canonicalImport = guessCanonicalImport(baseDir)
         def canonicalImportFile = new File(gopath, "src/" + canonicalImport)
 
-        // get a list of absolute packages for the project
+        // list of package names
         def packages = sourceFiles.collect {
-            def subdir = it.parentFile
-            if (subdir != null) {
-                (canonicalImport + "/" + subdir).replaceAll('/$', "")
-            } else {
-                canonicalImport
-            }
+          def subdir = it.parentFile
+          if (subdir != null) {
+            (canonicalImport + "/" + subdir).replaceAll('/$', "")
+          } else {
+            canonicalImport
+          }
         }.toSet()
 
         project.task('clean', type: Exec) {
-            commandLine "rm", "-rf", "build/"
+          commandLine "rm", "-rf", "build/", config.binaryName
         }
 
         project.task('gopath') << {
-            gopath.mkdirs()
+          gopath.mkdirs()
 
-            (resourceFiles + sourceFiles).each { file ->
-                def target = new File(canonicalImportFile, file.path)
+          sourceFiles.each { file ->
+            def target = new File(canonicalImportFile, file.path)
 
-                if (!target.parentFile.exists())
-                    target.parentFile.mkdirs()
+            if (!target.parentFile.exists())
+              target.parentFile.mkdirs()
 
-                // remove target if it exists
-                if (Files.exists(target.toPath(), LinkOption.NOFOLLOW_LINKS))
-                    Files.delete(target.toPath())
+            // remove target if it exists
+            if (Files.exists(target.toPath(), LinkOption.NOFOLLOW_LINKS))
+              Files.delete(target.toPath())
 
-                // link source file to target
-                Files.createSymbolicLink(target.toPath(), file.absoluteFile.toPath())
+            // link source file to target
+            Files.createSymbolicLink(target.toPath(), file.absoluteFile.toPath())
 
-                // copy file to the build directory
-                // Files.copy(file.toPath(), target.toPath())
-            }
+            // copy file to the build directory
+            // Files.copy(file.toPath(), target.toPath())
+          }
         }
 
         if (new File(baseDir, "glide.yaml").exists()) {
-            project.task("glide", type: Exec, dependsOn: "gopath") {
-                commandLine "go", "get", "github.com/Masterminds/glide"
-                environment "GOPATH", gopath
-            }
+          project.task("install-glide", type: Exec, dependsOn: "gopath") {
+            commandLine "go", "get", "github.com/Masterminds/glide"
+            environment "GOPATH", gopath
+          }
 
-            project.task("dependencies", type: Exec, dependsOn: "glide") {
-                commandLine gopath.path + "/bin/glide", "install", "--force", "--delete", "--cache"
-                workingDir canonicalImportFile
-                environment "GOPATH", gopath
-            }
-        } else {
-            project.task("dependencies", type: Exec, dependsOn: "gopath") {
-                commandLine "go", "get", "-v"
-                workingDir canonicalImportFile
-                environment "GOPATH", gopath
-            }
-        }
-
-        project.task("format", type: Exec, dependsOn: "gopath") {
-            commandLine(["go", "fmt"] + packages)
+          project.task("dependencies", type: Exec, dependsOn: "install-glide") {
+            commandLine gopath.path + "/bin/glide", "install", "--force", "--delete", "--cache"
             workingDir canonicalImportFile
             environment "GOPATH", gopath
+          }
+        } else {
+          project.task("dependencies", type: Exec, dependsOn: "gopath") {
+            commandLine "go", "get", "-v"
+            workingDir canonicalImportFile
+            environment "GOPATH", gopath
+          }
+        }
+
+        project.task("install-goimports", type: Exec, dependsOn: "gopath") {
+          commandLine "go", "get", "golang.org/x/tools/cmd/goimports"
+          environment "GOPATH", gopath
+        }
+
+        project.task("optimize-imports", type: Exec, dependsOn: "install-goimports") {
+          commandLine([gopath.path + "/bin/goimports", "-w"] + goSourceFiles)
+          workingDir canonicalImportFile
+          environment "GOPATH", gopath
+        }
+
+        project.task("format", type: Exec, dependsOn: ["gopath", "optimize-imports"]) {
+          commandLine(["go", "fmt"] + packages)
+          workingDir canonicalImportFile
+          environment "GOPATH", gopath
         }
 
         project.task("test", type: Exec, dependsOn: "dependencies") {
-            commandLine(["go", "test"] + packages)
-            workingDir canonicalImportFile
-            environment "GOPATH", gopath
+          commandLine(["go", "test"] + packages)
+          workingDir canonicalImportFile
+          environment "GOPATH", gopath
         }
 
         project.task("build", type: Exec, dependsOn: "dependencies") {
-            commandLine "go", "build", "-o", "${-> new File(baseDir, project.golang.binaryName)}"
-            workingDir canonicalImportFile
-            environment "GOPATH", gopath
+          commandLine "go", "build", "-o", new File(baseDir, config.binaryName)
+          workingDir canonicalImportFile
+          environment "GOPATH", gopath
         }
 
         project.task("buildStaticForLinux", type: Exec, dependsOn: ["format", "dependencies"]) {
-            commandLine "go", "build", "-o", "${-> new File(baseDir, project.golang.binaryName)}"
-            workingDir canonicalImportFile
-            environment "GOPATH", gopath
-            environment "CGO_ENABLED", 0
-            environment "GOOS", "linux"
-            environment "GOARCH", "amd64"
+          commandLine "go", "build", "-o", new File(baseDir, config.binaryName)
+          workingDir canonicalImportFile
+          environment "GOPATH", gopath
+          environment "CGO_ENABLED", 0
+          environment "GOOS", "linux"
+          environment "GOARCH", "amd64"
         }
+      }
     }
+  }
 }
 
 class GoPluginExtension {
-    String binaryName = "output"
+  String binaryName = "output"
 }

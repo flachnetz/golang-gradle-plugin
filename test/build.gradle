@@ -1,5 +1,5 @@
-apply from: "../golang.gradle"
+apply from: "golang.gradle"
 
 golang {
-    binaryName = "main"
+  binaryName = "main"
 }
