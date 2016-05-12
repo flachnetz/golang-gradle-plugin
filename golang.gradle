@@ -30,11 +30,14 @@ class GoPlugin implements Plugin<Project> {
 
         // get all non-vendored go files relative to the projects directory
         def sourceFiles = project.fileTree(baseDir) {
-          include "**/*.go", "glide.*", "resources/**", "static/**"
-          exclude "**/vendor/**", "build/**"
+          include config.include
+          exclude config.exclude
         }.collect { relativeTo(it, baseDir) }
 
         def goSourceFiles = sourceFiles.grep { it.name.toLowerCase().endsWith(".go") }
+        if (goSourceFiles.empty) {
+          throw new RuntimeException("No *.go source files found")
+        }
 
         // go path under build/
         def gopath = new File(project.buildDir, "gopath").absoluteFile
@@ -141,4 +144,6 @@ class GoPlugin implements Plugin<Project> {
 
 class GoPluginExtension {
   String binaryName = "output"
+  List<String> include = ["**/*.go", "glide.*", "resources/**", "static/**"]
+  List<String> exclude = ["**/vendor/**", "build/**"]
 }
