@@ -44,7 +44,7 @@ class GoPlugin implements Plugin<Project> {
         def canonicalImportFile = new File(gopath, "src/" + canonicalImport)
 
         // list of package names
-        def packages = sourceFiles.collect {
+        def packages = goSourceFiles.collect {
           def subdir = it.parentFile
           if (subdir != null) {
             (canonicalImport + "/" + subdir).replaceAll('/$', "")
