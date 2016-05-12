@@ -156,14 +156,14 @@ class GoPlugin implements Plugin<Project> {
           }
         }
 
-        new File(buildDir, "outputs").mkdirs()
-
         project.task("test", type: Exec, dependsOn: ["install-junit-report", "run-test"]) {
           commandLine gopath.path + "/bin/go-junit-report", "--set-exit-code"
           workingDir canonicalImportFile
           environment "GOPATH", gopath
 
           doFirst {
+            new File(buildDir, "outputs").mkdirs()
+
             // send the test output to the process
             standardInput = new ByteArrayInputStream(project.tasks."run-test".output())
             standardOutput = new FileOutputStream(new File(buildDir, "outputs/junit.xml"))
