@@ -130,7 +130,7 @@ class GoPlugin implements Plugin<Project> {
           environment "GOPATH", gopath
         }
 
-        project.task("optimize-imports", type: Exec, dependsOn: "install-goimports") {
+        project.task("optimize-imports", type: Exec, dependsOn: ["install-goimports", "dependencies"]) {
           commandLine([gopath.path + "/bin/goimports", "-l", "-w"] + goSourceFiles)
           workingDir canonicalImportFile
           environment "GOPATH", gopath
