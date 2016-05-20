@@ -17,5 +17,3 @@ func TestBadFirst(t *testing.T) {
 func TestBadSecond(t *testing.T) {
 	t.Error("Expected pi to be 3.")
 }
-
-
