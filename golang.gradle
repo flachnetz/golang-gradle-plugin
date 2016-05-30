@@ -171,13 +171,13 @@ class GoPlugin implements Plugin<Project> {
         }
 
         project.task("build", type: Exec, dependsOn: "dependencies") {
-          commandLine "go", "build", "-o", new File(baseDir, config.binaryName)
+          commandLine "go", "build", "-ldflags", "-X=main.Version=${project.version}", "-o", new File(baseDir, config.binaryName)
           workingDir canonicalImportFile
           environment "GOPATH", gopath
         }
 
         project.task("buildStaticForLinux", type: Exec, dependsOn: ["format", "dependencies"]) {
-          commandLine "go", "build", "-o", new File(baseDir, config.binaryName)
+          commandLine "go", "build", "-ldflags", "-X=main.Version=${project.version}", "-o", new File(baseDir, config.binaryName)
           workingDir canonicalImportFile
           environment "GOPATH", gopath
           environment "CGO_ENABLED", 0
