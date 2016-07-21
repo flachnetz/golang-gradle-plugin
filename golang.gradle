@@ -109,23 +109,24 @@ class GoPlugin implements Plugin<Project> {
             // Files.copy(file.toPath(), target.toPath())
           }
         }
+        if (!project.hasProperty("noDeps")) {
+          if (new File(baseDir, "glide.yaml").exists()) {
+            project.task("install-glide", type: Exec, dependsOn: "gopath") {
+              commandLine "go", "get", "github.com/Masterminds/glide"
+              environment "GOPATH", gopath
+            }
 
-        if (new File(baseDir, "glide.yaml").exists()) {
-          project.task("install-glide", type: Exec, dependsOn: "gopath") {
-            commandLine "go", "get", "github.com/Masterminds/glide"
-            environment "GOPATH", gopath
-          }
-
-          project.task("dependencies", type: Exec, dependsOn: "install-glide") {
-            commandLine gopath.path + "/bin/glide", "install", "--force", "--delete", "--cache"
-            workingDir canonicalImportFile
-            environment "GOPATH", gopath
-          }
-        } else {
-          project.task("dependencies", type: Exec, dependsOn: "gopath") {
-            commandLine "go", "get", "-v"
-            workingDir canonicalImportFile
-            environment "GOPATH", gopath
+            project.task("dependencies", type: Exec, dependsOn: "install-glide") {
+              commandLine gopath.path + "/bin/glide", "install", "--force", "--delete", "--cache"
+              workingDir canonicalImportFile
+              environment "GOPATH", gopath
+            }
+          } else {
+            project.task("dependencies", type: Exec, dependsOn: "gopath") {
+              commandLine "go", "get", "-v"
+              workingDir canonicalImportFile
+              environment "GOPATH", gopath
+            }
           }
         }
 
@@ -180,6 +181,7 @@ class GoPlugin implements Plugin<Project> {
         }
 
         project.task("build", type: Exec, dependsOn: "dependencies") {
+          description "Build artifact. Use -PnoDeps to skip dependency downloads/updates."
           commandLine "go", "build", "-ldflags",
             "-X=main.Version=${project.version} -X=main.GitHash=${gitHash} -X=main.BuildDate=${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}",
             "-o", new File(baseDir, config.binaryName)
