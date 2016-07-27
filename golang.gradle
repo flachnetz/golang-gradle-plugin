@@ -100,8 +100,11 @@ class GoPlugin implements Plugin<Project> {
         // we put the gopath under /tmp. We dont want it under project.buildDir as then some go-tools
         // detect the files under project.buildDir and think they belong to the project,
         // which is not great.
-        def projectHash = MessageDigest.getInstance("MD5").digest(project.buildDir.absolutePath.bytes).encodeHex().toString()
-        def gopath = new File("/tmp", "gopath-${projectHash}")
+        def projectHash = MessageDigest.getInstance("MD5")
+          .digest(project.buildDir.absolutePath.bytes)
+          .encodeHex().toString()
+
+        def gopath = new File("/tmp/gopath-${projectHash}")
         def goroot = new File("/tmp/go/${config.goVersion}")
         def go = "${goroot}/bin/go"
 
