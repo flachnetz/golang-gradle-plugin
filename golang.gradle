@@ -1,5 +1,7 @@
 import java.nio.file.Files
 import java.nio.file.LinkOption
+import java.nio.file.StandardCopyOption
+import java.security.MessageDigest
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -9,13 +11,13 @@ class ForwardingByteArrayOutputStream extends ByteArrayOutputStream {
   OutputStream target
 
   @Override
-  void write(int b) {
+  synchronized void write(int b) {
     target.write(b)
     super.write(b)
   }
 
   @Override
-  void write(byte[] b, int off, int len) {
+  synchronized void write(byte[] b, int off, int len) {
     target.write(b, off, len)
     super.write(b, off, len)
   }
@@ -43,6 +45,40 @@ class GoPlugin implements Plugin<Project> {
     throw new RuntimeException("Oops, please add a canonical import path. See https://golang.org/doc/go1.4#canonicalimports'")
   }
 
+/**
+ * Ensures that golang is installed in the given directory. The
+ * go binary is then found under $goroot/bin/go.
+ */
+  static void ensureGoTools(File goroot, String version) {
+    // ensure that the directory exists.
+    goroot.mkdirs()
+
+    def tarFile = new File(goroot.parentFile, "go-${version}.tar.gz")
+    if (!tarFile.exists()) {
+      def tarFileTemp = new File("${tarFile}.tmp${System.currentTimeMillis()}")
+
+      // get system, we don't use windows.
+      def system = "linux".equalsIgnoreCase(System.getProperty("os.name")) ? "linux" : "darwin";
+      def downloadUrl = "https://storage.googleapis.com/golang/go${version}.${system}-amd64.tar.gz".toURL()
+
+      System.out.println("Downloading go $version from $downloadUrl")
+      downloadUrl.openStream().withStream { input ->
+        Files.copy(input, tarFileTemp.toPath())
+        Files.move(tarFileTemp.toPath(), tarFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
+      }
+    }
+
+    def goBinary = new File(goroot, "bin/go")
+    if (!goBinary.exists()) {
+      System.out.println("Unpacking go $version")
+      def tar = "tar xf ${tarFile} -C ${goroot} --strip-components=1".execute()
+      tar.waitForProcessOutput(System.out, System.err)
+      if (tar.waitFor() != 0)
+        throw new Exception("Could not unpack go");
+    }
+  }
+
+
   void apply(Project project) {
     project.configure(project) {
       GoPluginExtension config = project.extensions.create("golang", GoPluginExtension)
@@ -61,8 +97,15 @@ class GoPlugin implements Plugin<Project> {
           throw new RuntimeException("No *.go source files found")
         }
 
-        // go path under build/
-        def gopath = new File(project.buildDir, "gopath").absoluteFile
+        // we put the gopath under /tmp. We dont want it under project.buildDir as then some go-tools
+        // detect the files under project.buildDir and think they belong to the project,
+        // which is not great.
+        def projectHash = MessageDigest.getInstance("MD5").digest(project.buildDir.absolutePath.bytes).encodeHex().toString()
+        def gopath = new File("/tmp", "gopath-${projectHash}")
+        def goroot = new File("/tmp/go/${config.goVersion}")
+        def go = "${goroot}/bin/go"
+
+        def defaultEnvironmentVariables = [GOROOT: goroot, GOPATH: gopath]
 
         // canonical import of the project
         def canonicalImport = guessCanonicalImport(baseDir)
@@ -82,14 +125,18 @@ class GoPlugin implements Plugin<Project> {
         String gitHash = "could not get git hash"
         try {
           gitHash = "git rev-parse HEAD".execute([], baseDir).text.trim()
-        } catch(Exception ignored) {
+        } catch (Exception ignored) {
         }
 
         project.task('clean', type: Exec) {
-          commandLine "rm", "-rf", "build/", config.binaryName
+          commandLine "rm", "-rf", "build/", config.binaryName, gopath
         }
 
-        project.task('gopath') << {
+        project.task('golang') << {
+          ensureGoTools(goroot, config.goVersion)
+        }
+
+        project.task('gopath', dependsOn: 'golang') << {
           gopath.mkdirs()
 
           sourceFiles.each { file ->
@@ -109,53 +156,54 @@ class GoPlugin implements Plugin<Project> {
             // Files.copy(file.toPath(), target.toPath())
           }
         }
+
         if (!project.hasProperty("noDeps")) {
           if (new File(baseDir, "glide.yaml").exists()) {
             project.task("install-glide", type: Exec, dependsOn: "gopath") {
-              commandLine "go", "get", "github.com/Masterminds/glide"
-              environment "GOPATH", gopath
+              commandLine go, "get", "github.com/Masterminds/glide"
+              environment defaultEnvironmentVariables
             }
 
             project.task("dependencies", type: Exec, dependsOn: "install-glide") {
-              commandLine gopath.path + "/bin/glide", "install", "--force", "--delete", "--cache"
+              commandLine "${gopath}/bin/glide", "install", "--force", "--delete", "--cache"
               workingDir canonicalImportFile
-              environment "GOPATH", gopath
+              environment defaultEnvironmentVariables
             }
           } else {
             project.task("dependencies", type: Exec, dependsOn: "gopath") {
-              commandLine "go", "get", "-v"
+              commandLine go, "get", "-v"
               workingDir canonicalImportFile
-              environment "GOPATH", gopath
+              environment defaultEnvironmentVariables
             }
           }
         }
 
         project.task("install-goimports", type: Exec, dependsOn: "gopath") {
-          commandLine "go", "get", "golang.org/x/tools/cmd/goimports"
-          environment "GOPATH", gopath
+          commandLine go, "get", "golang.org/x/tools/cmd/goimports"
+          environment defaultEnvironmentVariables
         }
 
         project.task("install-junit-report", type: Exec, dependsOn: "gopath") {
-          commandLine "go", "get", "github.com/jstemmer/go-junit-report"
-          environment "GOPATH", gopath
+          commandLine go, "get", "github.com/jstemmer/go-junit-report"
+          environment defaultEnvironmentVariables
         }
 
         project.task("optimize-imports", type: Exec, dependsOn: ["dependencies", "install-goimports"]) {
-          commandLine([gopath.path + "/bin/goimports", "-l", "-w"] + goSourceFiles)
+          commandLine(["${gopath}/bin/goimports", "-l", "-w"] + goSourceFiles)
           workingDir canonicalImportFile
-          environment "GOPATH", gopath
+          environment defaultEnvironmentVariables
         }
 
         project.task("format", type: Exec, dependsOn: ["gopath", "optimize-imports"]) {
-          commandLine(["go", "fmt"] + packages)
+          commandLine([go, "fmt"] + packages)
           workingDir canonicalImportFile
-          environment "GOPATH", gopath
+          environment defaultEnvironmentVariables
         }
 
         project.task("run-test", type: Exec, dependsOn: "dependencies") {
-          commandLine(["go", "test", "-v"] + packages)
+          commandLine([go, "test", "-v"] + packages)
           workingDir canonicalImportFile
-          environment "GOPATH", gopath
+          environment defaultEnvironmentVariables
 
           ignoreExitValue = true
           standardOutput = new ForwardingByteArrayOutputStream(target: System.out)
@@ -167,9 +215,9 @@ class GoPlugin implements Plugin<Project> {
         }
 
         project.task("test", type: Exec, dependsOn: ["install-junit-report", "run-test"]) {
-          commandLine gopath.path + "/bin/go-junit-report", "--set-exit-code"
+          commandLine "${gopath}/bin/go-junit-report", "--set-exit-code"
           workingDir canonicalImportFile
-          environment "GOPATH", gopath
+          environment defaultEnvironmentVariables
 
           doFirst {
             new File(buildDir, "outputs").mkdirs()
@@ -182,19 +230,20 @@ class GoPlugin implements Plugin<Project> {
 
         project.task("build", type: Exec, dependsOn: "dependencies") {
           description "Build artifact. Use -PnoDeps to skip dependency downloads/updates."
-          commandLine "go", "build", "-ldflags",
+          commandLine go, "build", "-a", "-ldflags",
             "-X=main.Version=${project.version} -X=main.GitHash=${gitHash} -X=main.BuildDate=${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}",
             "-o", new File(baseDir, config.binaryName)
           workingDir canonicalImportFile
-          environment "GOPATH", gopath
+          environment defaultEnvironmentVariables
         }
 
-        project.task("buildStaticForLinux", type: Exec, dependsOn: ["format", "dependencies"]) {
-          commandLine "go", "build", "-ldflags",
-            "-X=main.Version=${project.version} -X=main.GitHash=${gitHash} -X=main.BuildDate=${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}",
+        project.task("buildStaticForLinux", type: Exec, dependsOn: ["dependencies"]) {
+          commandLine go, "build", "-a", "-ldflags",
+            "-X=main.Version=${project.version} -X=main.GitHash='${gitHash}' -X=main.BuildDate='${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}'",
             "-o", new File(baseDir, config.binaryName)
+
           workingDir canonicalImportFile
-          environment "GOPATH", gopath
+          environment defaultEnvironmentVariables
           environment "CGO_ENABLED", 0
           environment "GOOS", "linux"
           environment "GOARCH", "amd64"
@@ -205,6 +254,7 @@ class GoPlugin implements Plugin<Project> {
 
   static class GoPluginExtension {
     String binaryName = "output"
+    String goVersion = "1.6.3"
     List<String> include = ["**/*.go", "glide.*", "resources/**", "static/**"]
     List<String> exclude = ["**/vendor/**", "build/**"]
   }
