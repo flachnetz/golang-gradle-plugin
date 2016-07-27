@@ -208,7 +208,6 @@ class GoPlugin implements Plugin<Project> {
           ignoreExitValue = true
           standardOutput = new ForwardingByteArrayOutputStream(target: System.out)
 
-          //extension method stopTomcat.output() can be used to obtain the output:
           ext.output = {
             return standardOutput.toByteArray()
           }
