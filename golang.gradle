@@ -108,7 +108,7 @@ class GoPlugin implements Plugin<Project> {
         def goroot = new File("/tmp/go/${config.goVersion}")
         def go = "${goroot}/bin/go"
 
-        def defaultEnvironmentVariables = [GOROOT: goroot, GOPATH: gopath]
+        def defaultEnvironmentVariables = [GOROOT: goroot, GOPATH: gopath, PATH: "$goroot/bin/:${System.getenv('PATH')}}"]
 
         // canonical import of the project
         def canonicalImport = guessCanonicalImport(baseDir)
