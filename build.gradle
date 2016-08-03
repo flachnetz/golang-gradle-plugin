@@ -22,7 +22,7 @@ dependencies {
 
 group = "flachnetz"
 
-project.ext {
+project {
   release {
     useAutomaticVersion = true
   }
