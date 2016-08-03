@@ -1,3 +1,4 @@
+package de.flachnetz.golang
 import org.gradle.api.*
 
 class GoPlugin implements Plugin<Project> {

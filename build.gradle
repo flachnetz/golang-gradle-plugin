@@ -1,7 +1,9 @@
 buildscript {
   repositories {
     jcenter()
-    url "https://plugins.gradle.org/m2/"
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
   }
   dependencies {
     classpath "com.gradle.publish:plugin-publish-plugin:0.9.5"
@@ -68,7 +70,7 @@ pluginBundle {
       id = project.group + "." + project.name
       description = 'Override description for this plugin'
       displayName = 'Golang Gradle Plugin'
-      tags = []
+      tags = ['build']
       version = project.version
     }
   }
@@ -85,4 +87,4 @@ task wrapper(type: Wrapper) {
 }
 
 
-afterReleaseBuild.dependsOn bintrayUpload
+afterReleaseBuild.dependsOn bintrayUpload, publishPlugins
