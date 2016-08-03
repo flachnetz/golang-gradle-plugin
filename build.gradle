@@ -23,6 +23,10 @@ dependencies {
 
 group = "flachnetz"
 
+project.ext {
+  useAutomaticVersion=true
+}
+
 
 publishing {
   publications {
@@ -50,3 +54,6 @@ bintray {
 task wrapper(type: Wrapper){
   gradleVersion = project.ext.gradleWrapperVersion
 }
+
+
+afterReleaseBuild.dependsOn bintrayUpload
