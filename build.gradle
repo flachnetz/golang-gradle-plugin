@@ -38,6 +38,7 @@ bintray {
   key = System.getenv('BINTRAY_KEY')
   publications = ['GradleGolangPublication']
   publish = true
+  override = true
   pkg {
     repo = 'golang-gradle-plugin'
     name = 'golang-gradle-plugin'
