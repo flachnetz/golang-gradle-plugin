@@ -1,18 +1,50 @@
-apply plugin: 'groovy'
+
+buildscript {
+  repositories {
+    jcenter()
+  }
+}
 
 plugins {
   id "com.jfrog.bintray" version "1.7"
+  id 'net.researchgate.release' version '2.4.0'
 }
+
+
+apply plugin: 'groovy'
+
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 dependencies {
   compile gradleApi()
   compile localGroovy()
 }
 
+group = "flachnetz"
+
+
+publishing {
+  publications {
+    GradleGolangPublication(MavenPublication) {
+      from components.java
+      groupId 'de.flachnetz'
+      artifactId 'golang-gradle-plugin'
+      version '0.1.0'
+    }
+  }
+}
+
 bintray {
   user = System.getenv('BINTRAY_USER')
   key = System.getenv('BINTRAY_KEY')
-  ...
+  publications = ['GradleGolangPublication']
+  pkg {
+    repo = 'golang-gradle-plugin'
+    name = 'golang-gradle-plugin'
+    licenses = ['Apache-2.0']
+    vcsUrl = 'https://github.com/flachnetz/golang-gradle-plugin.git'
+  }
 }
 
 task wrapper(type: Wrapper){
