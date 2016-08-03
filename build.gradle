@@ -22,13 +22,6 @@ dependencies {
 
 group = "flachnetz"
 
-project {
-  release {
-    useAutomaticVersion = true
-  }
-}
-
-
 publishing {
   publications {
     GradleGolangPublication(MavenPublication) {
