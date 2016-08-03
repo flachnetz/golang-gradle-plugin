@@ -1,4 +1,5 @@
 package de.flachnetz.golang
+
 class ForwardingByteArrayOutputStream extends ByteArrayOutputStream {
     OutputStream target
 
