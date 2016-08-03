@@ -1,6 +1,10 @@
 buildscript {
   repositories {
     jcenter()
+    url "https://plugins.gradle.org/m2/"
+  }
+  dependencies {
+    classpath "com.gradle.publish:plugin-publish-plugin:0.9.5"
   }
 }
 
@@ -9,6 +13,7 @@ plugins {
   id 'net.researchgate.release' version '2.4.0'
 }
 
+apply plugin: "com.gradle.plugin-publish"
 
 apply plugin: 'groovy'
 
@@ -20,7 +25,7 @@ dependencies {
   compile localGroovy()
 }
 
-group = "flachnetz"
+group = "de.flachnetz"
 
 publishing {
   publications {
@@ -37,13 +42,41 @@ bintray {
   user = System.getenv('BINTRAY_USER')
   key = System.getenv('BINTRAY_KEY')
   publications = ['GradleGolangPublication']
-  publish = true
-  override = true
   pkg {
     repo = 'golang-gradle-plugin'
     name = 'golang-gradle-plugin'
     licenses = ['Apache-2.0']
     vcsUrl = 'https://github.com/flachnetz/golang-gradle-plugin.git'
+  }
+}
+
+
+pluginBundle {
+  // These settings are set for the whole plugin bundle
+  website = 'https://github.com/flachnetz/golang-gradle-plugin'
+  vcsUrl = 'https://github.com/flachnetz/golang-gradle-plugin.git'
+
+  // tags and description can be set for the whole bundle here, but can also
+  // be set / overridden in the config for specific plugins
+  description = 'Golang Gradle Plugin'
+
+
+  plugins {
+
+    // first plugin
+    greetingsPlugin {
+      id = project.group + "." + project.name
+      description = 'Override description for this plugin'
+      displayName = 'Golang Gradle Plugin'
+      tags = []
+      version = project.version
+    }
+  }
+
+  mavenCoordinates {
+    groupId = project.group
+    artifactId = project.name
+    version = project.version
   }
 }
 
