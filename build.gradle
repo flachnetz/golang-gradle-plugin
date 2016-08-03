@@ -1,4 +1,3 @@
-
 buildscript {
   repositories {
     jcenter()
@@ -24,7 +23,9 @@ dependencies {
 group = "flachnetz"
 
 project.ext {
-  release.useAutomaticVersion=true
+  release {
+    useAutomaticVersion = true
+  }
 }
 
 
@@ -51,7 +52,7 @@ bintray {
   }
 }
 
-task wrapper(type: Wrapper){
+task wrapper(type: Wrapper) {
   gradleVersion = project.ext.gradleWrapperVersion
 }
 
