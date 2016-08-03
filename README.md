@@ -6,7 +6,7 @@ It  sets up a custom `GOPATH` and installs dependencies via glide or go get.
 Using the plugin is as simple as applying it directly from github and setting the desired output name for the compiled binary:
 
 ```
-apply from: "https://srv-git-01-hh1.alinghi.tipp24.net/raw/iwg/gradle-golang/master/golang.gradle"
+apply from: "https://raw.githubusercontent.com/flachnetz/golang-gradle-plugin/master/golang.gradle"
 
 golang {
     binaryName = "my-fancy-service"
