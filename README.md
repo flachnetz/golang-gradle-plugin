@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/flachnetz/golang-gradle-plugin.svg?branch=master)](https://travis-ci.org/flachnetz/golang-gradle-plugin)
 # golang-gradle-plugin
 
 Simple gradle plugin to compile go sources.
