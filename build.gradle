@@ -1,21 +1,7 @@
-buildscript {
-  repositories {
-    jcenter()
-    maven {
-      url "https://plugins.gradle.org/m2/"
-    }
-  }
-  dependencies {
-    classpath "com.gradle.publish:plugin-publish-plugin:0.9.5"
-  }
-}
-
 plugins {
-  id "com.jfrog.bintray" version "1.7"
+  id "com.gradle.plugin-publish" version "0.9.5"
   id 'net.researchgate.release' version '2.4.0'
 }
-
-apply plugin: "com.gradle.plugin-publish"
 
 apply plugin: 'groovy'
 
@@ -40,19 +26,6 @@ publishing {
   }
 }
 
-bintray {
-  user = System.getenv('BINTRAY_USER')
-  key = System.getenv('BINTRAY_KEY')
-  publications = ['GradleGolangPublication']
-  publish = true
-  pkg {
-    repo = 'golang-gradle-plugin'
-    name = 'golang-gradle-plugin'
-    licenses = ['Apache-2.0']
-    vcsUrl = 'https://github.com/flachnetz/golang-gradle-plugin.git'
-  }
-}
-
 
 pluginBundle {
   // These settings are set for the whole plugin bundle
@@ -66,10 +39,9 @@ pluginBundle {
 
   plugins {
 
-    // first plugin
-    greetingsPlugin {
+    golangGradlePlugin {
       id = project.group + "." + project.name
-      description = 'Override description for this plugin'
+      description = '''Golang Gradle Plugin - Simple gradle plugin to compile go sources. It sets up a custom `GOPATH` and installs dependencies via glide or go get.'''
       displayName = 'Golang Gradle Plugin'
       tags = ['build']
       version = project.version
@@ -88,4 +60,4 @@ task wrapper(type: Wrapper) {
 }
 
 
-afterReleaseBuild.dependsOn bintrayUpload, publishPlugins
+afterReleaseBuild.dependsOn publishPlugins
