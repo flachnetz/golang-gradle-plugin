@@ -1,7 +1,5 @@
-language: groovy
-
-jdk:
-- oraclejdk8
-
-after_success:
-- ./gradlew release -Prelease.useAutomaticVersion=true -PgradlePublishKey=$key -PgradlePublishSecret=$secret
+script:
+ - git checkout master
+ - git config --global user.email "m.joehren@gmail.com"
+ - git config --global user.name "Martin Joehren"
+ - ./gradlew release -Prelease.useAutomaticVersion=true -PgradlePublishKey=$key -PgradlePublishSecret=$secret
