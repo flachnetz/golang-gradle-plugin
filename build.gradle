@@ -15,6 +15,13 @@ dependencies {
 
 group = "de.flachnetz"
 
+if (hasProperty('gradlePublishKey')) {
+  System.setProperty('gradle.publish.key', gradlePublishKey)
+}
+if (hasProperty('gradlePublishSecret')) {
+  System.setProperty('gradle.publish.secret', gradlePublishSecret)
+}
+
 publishing {
   publications {
     GradleGolangPublication(MavenPublication) {
