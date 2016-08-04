@@ -1,16 +1,32 @@
 # golang-gradle-plugin
 
 Simple gradle plugin to compile go sources.
-It  sets up a custom `GOPATH` and installs dependencies via glide or go get.
+It sets up a custom `GOPATH` and installs dependencies via glide or go get.
 
-Using the plugin is as simple as applying it directly from github and setting the desired output name for the compiled binary:
+## Plugin Usage
+
+### With gradle > 2.1
+````
+plugins {
+  id "de.flachnetz.golang-gradle-plugin" version "0.1.14"
+}
+```
+
+### All gradle versions
 
 ```
-apply from: "https://raw.githubusercontent.com/flachnetz/golang-gradle-plugin/master/golang.gradle"
-
-golang {
-    binaryName = "my-fancy-service"
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "de.flachnetz:golang-gradle-plugin:0.1.14"
+  }
 }
+
+apply plugin: "de.flachnetz.golang-gradle-plugin"
 ```
 
 Tasks
