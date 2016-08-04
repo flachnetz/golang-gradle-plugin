@@ -2,8 +2,6 @@ package de.flachnetz.golang
 
 import java.nio.file.*
 import java.security.*
-import java.time.*
-import java.time.format.*
 import org.gradle.api.*
 import org.gradle.api.tasks.*
 
@@ -217,7 +215,7 @@ class GoPlugin implements Plugin<Project> {
                 project.task("build", type: Exec, dependsOn: "dependencies") {
                     description "Build artifact. Use -PnoDeps to skip dependency downloads/updates."
                     commandLine go, "build", "-a", "-ldflags",
-                            "-X=main.Version=${project.version} -X=main.GitHash=${gitHash} -X=main.BuildDate=${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}",
+                            "-X=main.Version=${project.version} -X=main.GitHash=${gitHash} -X=main.BuildDate=${java.time.format.DateTimeFormatter.ISO_DATE_TIME.format(java.time.LocalDateTime.now())}",
                             "-o", new File(baseDir, config.binaryName)
                     workingDir canonicalImportFile
                     environment defaultEnvironmentVariables
@@ -225,7 +223,7 @@ class GoPlugin implements Plugin<Project> {
 
                 project.task("buildStaticForLinux", type: Exec, dependsOn: ["dependencies"]) {
                     commandLine go, "build", "-a", "-ldflags",
-                            "-X=main.Version=${project.version} -X=main.GitHash='${gitHash}' -X=main.BuildDate='${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}'",
+                            "-X=main.Version=${project.version} -X=main.GitHash='${gitHash}' -X=main.BuildDate='${java.time.format.DateTimeFormatter.ISO_DATE_TIME.format(java.time.LocalDateTime.now())}'",
                             "-o", new File(baseDir, config.binaryName)
 
                     workingDir canonicalImportFile
