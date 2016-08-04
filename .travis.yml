@@ -1,7 +1,4 @@
-language: groovy
 
-jdk:
-- oraclejdk8
-
-after_success:
+script:
+- git checkout master
 - ./gradlew release -Prelease.useAutomaticVersion=true $key $secret
