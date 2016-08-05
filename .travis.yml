@@ -1,3 +1,6 @@
+jdk:
+  - oraclejdk8
+  
 script:
 - git checkout master
 - git remote set-url origin git@github.com:flachnetz/golang-gradle-plugin.git
