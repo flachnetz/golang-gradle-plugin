@@ -1,5 +1,6 @@
 script:
 - git checkout master
+- git remote set-url origin git@github.com:flachnetz/golang-gradle-plugin.git
 - "./gradlew release -Prelease.useAutomaticVersion=true -PgradlePublishKey=$key -PgradlePublishSecret=$secret"
 
 before_install:
