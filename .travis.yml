@@ -1,5 +1,13 @@
 script:
- - git checkout master
- - git config --global user.email "m.joehren@gmail.com"
- - git config --global user.name "Martin Joehren"
- - ./gradlew release -Prelease.useAutomaticVersion=true -PgradlePublishKey=$key -PgradlePublishSecret=$secret
+- git checkout master
+- "./gradlew release -Prelease.useAutomaticVersion=true -PgradlePublishKey=$key -PgradlePublishSecret=$secret"
+
+before_install:
+- openssl aes-256-cbc -K $encrypted_bd0e464da195_key -iv $encrypted_bd0e464da195_iv
+  -in commit_key.enc -out commit_key -d
+
+before_script:
+- chmod 600 commit_key
+- mv commit_key ~/.ssh/id_rsa
+- git config --global user.email "m.joehren@gmail.com"
+- git config --global user.name "Martin Joehren"
