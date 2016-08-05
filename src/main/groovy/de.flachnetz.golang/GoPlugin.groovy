@@ -3,9 +3,7 @@ package de.flachnetz.golang
 import java.nio.file.*
 import java.security.*
 import java.time.*
-import java.time.LocalDateTime
 import java.time.format.*
-import java.time.format.DateTimeFormatter
 import org.gradle.api.*
 import org.gradle.api.tasks.*
 
