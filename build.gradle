@@ -66,5 +66,8 @@ task wrapper(type: Wrapper) {
   gradleVersion = project.ext.gradleWrapperVersion
 }
 
+release {
+  preCommitText = "[ci skip] "
+}
 
 afterReleaseBuild.dependsOn publishPlugins
