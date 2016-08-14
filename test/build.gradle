@@ -1,5 +1,5 @@
 plugins {
-  id "de.flachnetz.golang-gradle-plugin" version "0.1.22"
+  id "de.flachnetz.golang-gradle-plugin" version "0.1.24"
 }
 
 golang {
