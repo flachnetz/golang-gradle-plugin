@@ -241,7 +241,7 @@ class GoPlugin implements Plugin<Project> {
 
     static class GoPluginExtension {
         String binaryName = "output"
-        String goVersion = "1.6.3"
+        String goVersion = "1.7"
         List<String> include = ["**/*.go", "glide.*", "resources/**", "static/**"]
         List<String> exclude = ["**/vendor/**", "build/**"]
     }
