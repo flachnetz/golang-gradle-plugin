@@ -1,7 +1,17 @@
-plugins {
-  id "de.flachnetz.golang-gradle-plugin" version "0.1.24"
+buildscript {
+  repositories {
+    mavenLocal()
+  }
+  dependencies {
+    classpath "de.flachnetz:golang-gradle-plugin:0.1.28-SNAPSHOT"
+  }
 }
+
+apply plugin: "de.flachnetz.golang-gradle-plugin"
 
 golang {
   binaryName = "main"
+  cgoEnabled = true
+  //baseDir = "/Users/m.joehren/work/esailors/gradle-golang/test"
+  //baseDir = "/Users/m.joehren/golang/src/srv-git-01-hh1.alinghi.tipp24.net/iwg/jarvis"
 }
