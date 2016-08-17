@@ -1,3 +1,5 @@
+/* for testing
+
 buildscript {
   repositories {
     mavenLocal()
@@ -8,6 +10,11 @@ buildscript {
 }
 
 apply plugin: "de.flachnetz.golang-gradle-plugin"
+*/
+
+plugins {
+  id "de.flachnetz.golang-gradle-plugin" version "0.1.28"
+}
 
 golang {
   binaryName = "main"

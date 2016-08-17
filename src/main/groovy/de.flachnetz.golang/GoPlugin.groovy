@@ -219,7 +219,7 @@ class GoPlugin implements Plugin<Project> {
                     description "Build artifact. Use -PnoDeps to skip dependency downloads/updates."
                     commandLine go, "build", "-a", "-ldflags",
                             "-X=main.Version=${project.version} -X=main.GitHash=${gitHash} -X=main.BuildDate=${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}",
-                            "-o", new File(baseDir, config.binaryName)
+                            "-o", new File(project.buildDir, config.binaryName)
                     workingDir canonicalImportFile
                     environment defaultEnvironmentVariables
                 }
@@ -228,7 +228,7 @@ class GoPlugin implements Plugin<Project> {
                     project.logger?.info("Building with cgo enabled: ${config.cgoEnabled}")
                     commandLine go, "build", "-a", "-ldflags",
                             "-X=main.Version=${project.version} -X=main.GitHash='${gitHash}' -X=main.BuildDate='${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}'",
-                            "-o", new File(baseDir, config.binaryName)
+                            "-o", new File(project.buildDir, config.binaryName)
 
                     workingDir canonicalImportFile
                     environment defaultEnvironmentVariables
