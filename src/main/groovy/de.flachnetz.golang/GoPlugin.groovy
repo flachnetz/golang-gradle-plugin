@@ -68,7 +68,7 @@ class GoPlugin implements Plugin<Project> {
             GoPluginExtension config = project.extensions.create("golang", GoPluginExtension)
 
             afterEvaluate {
-                def baseDir = project.rootProject.buildFile.parentFile
+                def baseDir = project.rootProject.projectDir
 
                 // get all non-vendored go files relative to the projects directory
                 def sourceFiles = project.fileTree(baseDir) {
