@@ -1,20 +1,4 @@
-/* for testing
-
-buildscript {
-  repositories {
-    mavenLocal()
-  }
-  dependencies {
-    classpath "de.flachnetz:golang-gradle-plugin:0.1.28-SNAPSHOT"
-  }
-}
-
 apply plugin: "de.flachnetz.golang-gradle-plugin"
-*/
-
-plugins {
-  id "de.flachnetz.golang-gradle-plugin" version "0.1.28"
-}
 
 golang {
   binaryName = "main"
