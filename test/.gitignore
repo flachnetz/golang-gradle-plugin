@@ -1,4 +1,5 @@
 /.gradle
 /build
+/another-command/build
 /main
 /.idea

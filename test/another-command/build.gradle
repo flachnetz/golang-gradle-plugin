@@ -1,5 +1,6 @@
 apply plugin: "de.flachnetz.golang-gradle-plugin"
 
 golang {
-  binaryName = "main"
+  binaryName = "another-command"
+  cgoEnabled = true
 }
