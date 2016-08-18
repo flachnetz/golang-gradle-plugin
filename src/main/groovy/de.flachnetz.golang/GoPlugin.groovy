@@ -111,7 +111,8 @@ class GoPlugin implements Plugin<Project> {
                 // canonical import of this project. should be the same as the canonical import of the root project
                 // plus the relative directory of this project to the root project. From this we calculate the
                 // gopath-absolute directory where the package files lives.
-                def projectCanonicalImport = new File(canonicalImport, relativeTo(project.projectDir, baseDir).path)
+                def projectSubPath = relativeTo(project.projectDir, baseDir).path
+                def projectCanonicalImport = new File(canonicalImport, projectSubPath)
                 def projectCanonicalImportFile = new File(gopath, "src/" + projectCanonicalImport)
 
                 // get git hash using git binary.
@@ -170,6 +171,45 @@ class GoPlugin implements Plugin<Project> {
                         commandLine go, "get", "github.com/Masterminds/glide"
                         environment defaultEnvironmentVariables
                     }
+
+                    project.task("optimize-imports", type: Exec, dependsOn: ["dependencies", ":install-goimports"]) {
+                        commandLine(["${gopath}/bin/goimports", "-l", "-w"] + goSourceFiles)
+                        workingDir projectCanonicalImportFile
+                        environment defaultEnvironmentVariables
+                    }
+
+                    project.task("format", type: Exec, dependsOn: [":gopath", "optimize-imports"]) {
+                        commandLine([go, "fmt"] + packages)
+                        workingDir projectCanonicalImportFile
+                        environment defaultEnvironmentVariables
+                    }
+
+                    project.task("run-test", type: Exec, dependsOn: ":dependencies") {
+                        commandLine([go, "test", "-v"] + packages)
+                        workingDir projectCanonicalImportFile
+                        environment defaultEnvironmentVariables
+
+                        ignoreExitValue = true
+                        standardOutput = new ForwardingByteArrayOutputStream(target: System.out)
+
+                        ext.output = {
+                            return standardOutput.toByteArray()
+                        }
+                    }
+
+                    project.task("test", type: Exec, dependsOn: [":install-junit-report", ":run-test"]) {
+                        commandLine "${gopath}/bin/go-junit-report", "--set-exit-code"
+                        workingDir projectCanonicalImportFile
+                        environment defaultEnvironmentVariables
+
+                        doFirst {
+                            new File(buildDir, "outputs").mkdirs()
+
+                            // send the test output to the process
+                            standardInput = new ByteArrayInputStream(project.rootProject.tasks."run-test".output())
+                            standardOutput = new FileOutputStream(new File(buildDir, "outputs/junit.xml"))
+                        }
+                    }
                 }
 
                 if (!project.hasProperty("noDeps")) {
@@ -185,45 +225,6 @@ class GoPlugin implements Plugin<Project> {
                             workingDir projectCanonicalImportFile
                             environment defaultEnvironmentVariables
                         }
-                    }
-                }
-
-                project.task("optimize-imports", type: Exec, dependsOn: ["dependencies", ":install-goimports"]) {
-                    commandLine(["${gopath}/bin/goimports", "-l", "-w"] + goSourceFiles)
-                    workingDir projectCanonicalImportFile
-                    environment defaultEnvironmentVariables
-                }
-
-                project.task("format", type: Exec, dependsOn: [":gopath", "optimize-imports"]) {
-                    commandLine([go, "fmt"] + packages)
-                    workingDir projectCanonicalImportFile
-                    environment defaultEnvironmentVariables
-                }
-
-                project.task("run-test", type: Exec, dependsOn: ":dependencies") {
-                    commandLine([go, "test", "-v"] + packages)
-                    workingDir projectCanonicalImportFile
-                    environment defaultEnvironmentVariables
-
-                    ignoreExitValue = true
-                    standardOutput = new ForwardingByteArrayOutputStream(target: System.out)
-
-                    ext.output = {
-                        return standardOutput.toByteArray()
-                    }
-                }
-
-                project.task("test", type: Exec, dependsOn: ["install-junit-report", "run-test"]) {
-                    commandLine "${gopath}/bin/go-junit-report", "--set-exit-code"
-                    workingDir projectCanonicalImportFile
-                    environment defaultEnvironmentVariables
-
-                    doFirst {
-                        new File(buildDir, "outputs").mkdirs()
-
-                        // send the test output to the process
-                        standardInput = new ByteArrayInputStream(project.tasks."run-test".output())
-                        standardOutput = new FileOutputStream(new File(buildDir, "outputs/junit.xml"))
                     }
                 }
 
