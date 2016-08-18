@@ -39,18 +39,15 @@ pluginBundle {
   website = 'https://github.com/flachnetz/golang-gradle-plugin'
   vcsUrl = 'https://github.com/flachnetz/golang-gradle-plugin.git'
 
-  // tags and description can be set for the whole bundle here, but can also
-  // be set / overridden in the config for specific plugins
-  description = 'Golang Gradle Plugin'
+  description = "Golang Gradle Plugin - Simple gradle plugin to compile go sources. It sets up a custom `GOPATH` and installs dependencies via glide or go get."
+  tags = ['build','golang','go','glide']
 
 
   plugins {
 
     golangGradlePlugin {
       id = project.group + "." + project.name
-      description = "Golang Gradle Plugin - Simple gradle plugin to compile go sources. It sets up a custom `GOPATH` and installs dependencies via glide or go get."
       displayName = 'Golang Gradle Plugin'
-      tags = ['build','golang','go','glide']
       version = project.version
     }
   }

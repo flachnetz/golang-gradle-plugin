@@ -7,7 +7,6 @@ import java.time.format.*
 import org.gradle.api.*
 import org.gradle.api.tasks.*
 
-
 class GoPlugin implements Plugin<Project> {
     static File relativeTo(File file, File base) {
         return new File(base.toURI().relativize(file.toURI()).path);
@@ -69,7 +68,7 @@ class GoPlugin implements Plugin<Project> {
             GoPluginExtension config = project.extensions.create("golang", GoPluginExtension)
 
             afterEvaluate {
-                def baseDir = project.buildFile.parentFile
+                def baseDir = config.baseDir.isEmpty() ? project.buildFile.parentFile : new File(config.baseDir)
 
                 // get all non-vendored go files relative to the projects directory
                 def sourceFiles = project.fileTree(baseDir) {
@@ -82,7 +81,7 @@ class GoPlugin implements Plugin<Project> {
                     throw new RuntimeException("No *.go source files found")
                 }
 
-                // we put the gopath under /tmp. We dont want it under project.buildDir as then some go-tools
+                // we put the gopath under /tmp. We dont want it under project.buildDir as some go-tools
                 // detect the files under project.buildDir and think they belong to the project,
                 // which is not great.
                 def projectHash = MessageDigest.getInstance("MD5")
@@ -128,17 +127,18 @@ class GoPlugin implements Plugin<Project> {
                     gopath.mkdirs()
 
                     sourceFiles.each { file ->
-                        def target = new File(canonicalImportFile, file.path)
+                        def link = new File(canonicalImportFile, file.path)
+                        def target = new File(baseDir, file.path)
 
-                        if (!target.parentFile.exists())
-                            target.parentFile.mkdirs()
+                        if (!link.parentFile.exists())
+                            link.parentFile.mkdirs()
 
                         // remove target if it exists
-                        if (Files.exists(target.toPath(), LinkOption.NOFOLLOW_LINKS))
-                            Files.delete(target.toPath())
+                        if (Files.exists(link.toPath(), LinkOption.NOFOLLOW_LINKS))
+                            Files.delete(link.toPath())
 
                         // link source file to target
-                        Files.createSymbolicLink(target.toPath(), file.absoluteFile.toPath())
+                        Files.createSymbolicLink(link.toPath(), target.toPath())
 
                         // copy file to the build directory
                         // Files.copy(file.toPath(), target.toPath())
@@ -219,19 +219,20 @@ class GoPlugin implements Plugin<Project> {
                     description "Build artifact. Use -PnoDeps to skip dependency downloads/updates."
                     commandLine go, "build", "-a", "-ldflags",
                             "-X=main.Version=${project.version} -X=main.GitHash=${gitHash} -X=main.BuildDate=${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}",
-                            "-o", new File(baseDir, config.binaryName)
+                            "-o", new File(project.buildDir, config.binaryName)
                     workingDir canonicalImportFile
                     environment defaultEnvironmentVariables
                 }
 
                 project.task("buildStaticForLinux", type: Exec, dependsOn: ["dependencies"]) {
+                    project.logger?.info("Building with cgo enabled: ${config.cgoEnabled}")
                     commandLine go, "build", "-a", "-ldflags",
                             "-X=main.Version=${project.version} -X=main.GitHash='${gitHash}' -X=main.BuildDate='${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}'",
-                            "-o", new File(baseDir, config.binaryName)
+                            "-o", new File(project.buildDir, config.binaryName)
 
                     workingDir canonicalImportFile
                     environment defaultEnvironmentVariables
-                    environment "CGO_ENABLED", 0
+                    environment "CGO_ENABLED", config.cgoEnabled ? 1 : 0
                     environment "GOOS", "linux"
                     environment "GOARCH", "amd64"
                 }
@@ -242,6 +243,8 @@ class GoPlugin implements Plugin<Project> {
     static class GoPluginExtension {
         String binaryName = "output"
         String goVersion = "1.7"
+        boolean cgoEnabled = false
+        String baseDir = ""
         List<String> include = ["**/*.go", "glide.*", "resources/**", "static/**"]
         List<String> exclude = ["**/vendor/**", "build/**"]
     }
