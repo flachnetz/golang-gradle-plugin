@@ -17,3 +17,5 @@ include 'services:webservice'
 */
 
 rootProject.name = 'gradle-golang-test'
+
+include "another-command"
