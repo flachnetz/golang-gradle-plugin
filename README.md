@@ -9,7 +9,7 @@ It sets up a custom `GOPATH` and installs dependencies via glide or go get.
 ### With gradle > 2.1
 ````
 plugins {
-  id "de.flachnetz.golang-gradle-plugin" version "0.1.26"
+  id "de.flachnetz.golang-gradle-plugin" version "0.1.30"
 }
 ```
 
@@ -23,7 +23,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath "de.flachnetz:golang-gradle-plugin:0.1.26"
+    classpath "de.flachnetz:golang-gradle-plugin:0.1.30"
   }
 }
 
