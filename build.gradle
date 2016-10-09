@@ -48,6 +48,8 @@ pluginBundle {
     golangGradlePlugin {
       id = project.group + "." + project.name
       displayName = 'Golang Gradle Plugin'
+      description = "Golang Gradle Plugin - Simple gradle plugin to compile go sources. It sets up a custom `GOPATH` and installs dependencies via glide or go get."
+      tags = ['build', 'golang','go','glide']
       version = project.version
     }
   }
