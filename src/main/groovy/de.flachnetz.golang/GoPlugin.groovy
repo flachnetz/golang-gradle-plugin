@@ -45,7 +45,7 @@ class GoPlugin implements Plugin<Project> {
             def system = "linux".equalsIgnoreCase(System.getProperty("os.name")) ? "linux" : "darwin";
             def downloadUrl = "https://storage.googleapis.com/golang/go${version}.${system}-amd64.tar.gz".toURL()
 
-            System.out.println("Downloading go $version from $downloadUrl")
+            System.out.println("Downloading go $version from $downloadUrl to ${tarFileTemp.toPath()} and moving it to ${tarFile.toPath()}")
             downloadUrl.openStream().withStream { input ->
                 Files.copy(input, tarFileTemp.toPath())
                 Files.move(tarFileTemp.toPath(), tarFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
@@ -89,7 +89,8 @@ class GoPlugin implements Plugin<Project> {
                         .encodeHex().toString()
 
                 def gopath = new File("/tmp/gopath-${projectHash}")
-                def goroot = new File("/tmp/go/${config.goVersion}")
+                def gorootParentDir = System.properties['user.home'] != null ? System.properties['user.home'] : "/tmp"
+                def goroot = new File("$gorootParentDir/.golang_gradle/go/${config.goVersion}")
                 def go = "${goroot}/bin/go"
 
                 def defaultEnvironmentVariables = [GOROOT: goroot, GOPATH: gopath, PATH: "$goroot/bin/:${System.getenv('PATH')}}"]
@@ -215,7 +216,7 @@ class GoPlugin implements Plugin<Project> {
                 if (!project.hasProperty("noDeps")) {
                     if (new File(project.projectDir, "glide.yaml").exists()) {
                         project.task("dependencies", type: Exec, dependsOn: ":install-glide") {
-                            commandLine "${gopath}/bin/glide", "install", "--force", "--delete", "--cache"
+                            commandLine "${gopath}/bin/glide", "install", "--force"
                             workingDir projectCanonicalImportFile
                             environment defaultEnvironmentVariables
                         }
