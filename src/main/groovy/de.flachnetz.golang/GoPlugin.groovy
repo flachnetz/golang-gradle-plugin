@@ -1,5 +1,7 @@
 package de.flachnetz.golang
 
+import org.apache.tools.ant.taskdefs.ExecTask
+
 import java.nio.file.*
 import java.security.*
 import java.time.*
@@ -56,7 +58,7 @@ class GoPlugin implements Plugin<Project> {
         if (!goBinary.exists()) {
             System.out.println("Unpacking go $version")
             def tar = "tar xf ${tarFile} -C ${goroot} --strip-components=1".execute()
-            tar.waitForProcessOutput(System.out, System.err)
+            tar.waitForProcessOutput(System.out as Appendable, System.err as Appendable)
             if (tar.waitFor() != 0)
                 throw new Exception("Could not unpack go to ${goroot}");
         }
@@ -128,29 +130,33 @@ class GoPlugin implements Plugin<Project> {
                 }
 
                 if (!project.parent) {
-                    project.task('golang') << {
-                        ensureGoTools(goroot, config.goVersion)
+                    project.task('golang') {
+                        doLast {
+                            ensureGoTools(goroot, config.goVersion)
+                        }
                     }
 
-                    project.task('gopath', dependsOn: 'golang') << {
-                        gopath.mkdirs()
+                    project.task('gopath', dependsOn: 'golang') {
+                        doLast {
+                            gopath.mkdirs()
 
-                        sourceFiles.each { file ->
-                            def link = new File(canonicalImportFile, file.path)
-                            def target = new File(baseDir, file.path)
+                            sourceFiles.each { file ->
+                                def link = new File(canonicalImportFile, file.path)
+                                def target = new File(baseDir, file.path)
 
-                            if (!link.parentFile.exists())
-                                link.parentFile.mkdirs()
+                                if (!link.parentFile.exists())
+                                    link.parentFile.mkdirs()
 
-                            // remove target if it exists
-                            if (Files.exists(link.toPath(), LinkOption.NOFOLLOW_LINKS))
-                                Files.delete(link.toPath())
+                                // remove target if it exists
+                                if (Files.exists(link.toPath(), LinkOption.NOFOLLOW_LINKS))
+                                    Files.delete(link.toPath())
 
-                            // link source file to target
-                            Files.createSymbolicLink(link.toPath(), target.toPath())
+                                // link source file to target
+                                Files.createSymbolicLink(link.toPath(), target.toPath())
 
-                            // copy file to the build directory
-                            // Files.copy(file.toPath(), target.toPath())
+                                // copy file to the build directory
+                                // Files.copy(file.toPath(), target.toPath())
+                            }
                         }
                     }
 
@@ -229,7 +235,7 @@ class GoPlugin implements Plugin<Project> {
                     }
                 }
 
-                project.task("build", type: Exec, dependsOn: "dependencies") {
+                project.task("build", type: GoBuildTask, dependsOn: "dependencies") {
                     description "Build artifact. Use -PnoDeps to skip dependency downloads/updates."
                     commandLine go, "build", "-a", "-ldflags",
                             "-X=main.Version=${project.version} -X=main.GitHash=${gitHash} -X=main.BuildDate=${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}",
@@ -238,9 +244,11 @@ class GoPlugin implements Plugin<Project> {
                     workingDir projectCanonicalImportFile
                     environment defaultEnvironmentVariables
                     environment "CGO_ENABLED", config.cgoEnabled ? 1 : 0
+
+                    outputFile new File(project.buildDir, config.binaryName)
                 }
 
-                project.task("buildForLinux", type: Exec, dependsOn: "dependencies") {
+                project.task("buildForLinux", type: GoBuildTask, dependsOn: "dependencies") {
                     project.logger?.info("Building with cgo enabled: ${config.cgoEnabled}")
                     commandLine go, "build", "-a", "-ldflags",
                             "-X=main.Version=${project.version} -X=main.GitHash=${gitHash} -X=main.BuildDate='${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}'",
@@ -251,6 +259,8 @@ class GoPlugin implements Plugin<Project> {
                     environment "CGO_ENABLED", config.cgoEnabled ? 1 : 0
                     environment "GOOS", "linux"
                     environment "GOARCH", "amd64"
+
+                    outputFile new File(project.buildDir, config.binaryName)
                 }
 
                 project.task("goRun", type: Exec, dependsOn: "build") {
@@ -263,6 +273,23 @@ class GoPlugin implements Plugin<Project> {
                     }
                 }
             }
+        }
+    }
+
+    public static class GoBuildTask extends AbstractExecTask {
+        private File outputFile;
+
+        public GoBuildTask() {
+            super(GoBuildTask.class)
+        }
+
+        public void setOutputFile(File file) {
+            this.outputFile = file;
+        }
+
+        @OutputFile
+        public File getOutputFile() {
+            return this.outputFile;
         }
     }
 
