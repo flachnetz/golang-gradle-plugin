@@ -249,7 +249,6 @@ class GoPlugin implements Plugin<Project> {
                 }
 
                 project.task("buildForLinux", type: GoBuildTask, dependsOn: "dependencies") {
-                    project.logger?.info("Building with cgo enabled: ${config.cgoEnabled}")
                     commandLine go, "build", "-a", "-ldflags",
                             "-X=main.Version=${project.version} -X=main.GitHash=${gitHash} -X=main.BuildDate='${DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())}'",
                             "-o", new File(project.buildDir, config.binaryName)
@@ -261,6 +260,9 @@ class GoPlugin implements Plugin<Project> {
                     environment "GOARCH", "amd64"
 
                     outputFile new File(project.buildDir, config.binaryName)
+                    doLast {                        
+                        project.logger?.info("Building with cgo enabled: ${config.cgoEnabled}")
+                    }
                 }
 
                 project.task("goRun", type: Exec, dependsOn: "build") {
