@@ -260,7 +260,7 @@ class GoPlugin implements Plugin<Project> {
                     environment "GOARCH", "amd64"
 
                     outputFile new File(project.buildDir, config.binaryName)
-                    doLast {                        
+                    doFirst {                        
                         project.logger?.info("Building with cgo enabled: ${config.cgoEnabled}")
                     }
                 }
