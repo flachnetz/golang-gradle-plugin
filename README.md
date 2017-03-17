@@ -34,7 +34,9 @@ apply plugin: "de.flachnetz.golang-gradle-plugin"
 ### Example
 
 ```
-apply plugin: "de.flachnetz.golang-gradle-plugin"
+plugins {
+  id "de.flachnetz.golang-gradle-plugin" version "VERSION"
+}
 
 golang {
   binaryName = "main"
