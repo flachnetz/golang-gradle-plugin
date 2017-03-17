@@ -31,7 +31,22 @@ buildscript {
 apply plugin: "de.flachnetz.golang-gradle-plugin"
 ```
 
-Tasks
+### Example
+
+```
+apply plugin: "de.flachnetz.golang-gradle-plugin"
+
+golang {
+  binaryName = "main"
+  goVersion = "1.8"
+  cgoEnabled = false
+  // include = ["**/*.go", ...]
+  // exclude = ["**/vendor/**", ...]
+}
+
+```
+
+### Tasks
 -----
 The plugin provides the following gradle tasks:
 * dependencies
