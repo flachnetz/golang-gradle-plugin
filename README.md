@@ -7,6 +7,7 @@ It sets up a custom `GOPATH` and installs dependencies via glide or go get.
 ## Plugin Usage
 
 ### With gradle > 2.1
+
 ````
 plugins {
   id "de.flachnetz.golang-gradle-plugin" version "0.1.38"
