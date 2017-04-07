@@ -89,8 +89,9 @@ class GoPlugin implements Plugin<Project> {
                 def projectHash = MessageDigest.getInstance("MD5")
                         .digest(baseDir.absolutePath.bytes)
                         .encodeHex().toString()
-
-                def gopath = new File("/tmp/gopath-${projectHash}")
+                
+                def goPathString = project.findProperty("overrideGoPath") ?: "/tmp/gopath-${projectHash}"                
+                def gopath = new File(goPathString)
                 def gorootParentDir = System.properties['user.home'] != null ? System.properties['user.home'] : "/tmp"
                 def goroot = new File("$gorootParentDir/.golang_gradle/go/${config.goVersion}")
                 def go = "${goroot}/bin/go"
