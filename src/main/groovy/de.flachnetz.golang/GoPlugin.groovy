@@ -223,7 +223,7 @@ class GoPlugin implements Plugin<Project> {
                 if (!project.hasProperty("noDeps")) {
                     if (new File(project.projectDir, "glide.yaml").exists()) {
                         project.task("dependencies", type: Exec, dependsOn: ":install-glide") {
-                            commandLine "${gopath}/bin/glide", "install", "--force"
+                            commandLine "${gopath}/bin/glide", "install", "--force", "--strip-vendor"
                             workingDir projectCanonicalImportFile
                             environment defaultEnvironmentVariables
                         }
